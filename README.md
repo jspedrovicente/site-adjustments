@@ -10,11 +10,14 @@ Crie `.env.local` a partir de `.env.example`:
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 APPROVAL_PASSWORD=escolha-uma-senha-forte
+COMPLETION_PASSWORD=escolha-outra-senha-forte
 ```
 
 Use somente a chave pública (`publishable` ou `anon`). A aplicação respeita RLS e não utiliza `service_role`.
 
-`APPROVAL_PASSWORD` permanece apenas no servidor. Novas demandas recebem o status `Pendente de aprovação`; depois da aprovação, passam para `Novo` e entram na listagem principal.
+`APPROVAL_PASSWORD` permanece apenas no servidor. Novas demandas recebem o status `Pendente de análise`; depois da aprovação, passam para `Novo` e entram na listagem principal e no dashboard.
+
+Quando todos os itens estiverem feitos, a demanda vai para “Pendentes de confirmação”. `COMPLETION_PASSWORD` protege a confirmação final; depois dela, o status passa para `Finalizada` e a demanda aparece em “Concluídos”.
 
 ```bash
 npm install
