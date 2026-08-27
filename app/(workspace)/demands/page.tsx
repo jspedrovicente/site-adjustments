@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { getDemands } from "@/lib/data/demands";
 import { PageHeader } from "@/components/page-header";
 import { DemandCard } from "@/components/demand-card";
-import { isDemandAwaitingConfirmation, isDemandDone, isDemandPendingAnalysis, isItemDone } from "@/lib/data/model";
+import { isDemandAwaitingConfirmation, isDemandDone, isDemandPendingAnalysis, isDemandRejected, isItemDone } from "@/lib/data/model";
 
 export const metadata = { title: "Demandas" };
 type RawParams = Record<string, string | string[] | undefined>;
@@ -19,7 +19,7 @@ export default async function DemandsPage({ searchParams }: { searchParams: Para
   const values = (key: "priority" | "status") => [...new Set(all.map((demand) => demand[key]).filter(Boolean))].sort();
   const categories = [...new Set(all.map((demand) => demand.category?.name).filter((value): value is string => !!value))].sort();
   const people = [...new Set(all.flatMap((demand) => [demand.developer, ...demand.items.map((item) => item.assignee)]).filter((value): value is string => !!value))].sort();
-  const demands = all.filter((demand) => !isDemandPendingAnalysis(demand) && !isDemandAwaitingConfirmation(demand) && (completedOnly ? isDemandDone(demand) : !isDemandDone(demand)) && (!q || `${demand.title} ${demand.sourceId ?? ""} ${demand.developer ?? ""}`.toLowerCase().includes(q)) && (!category || demand.category?.name === category) && (!priority || demand.priority === priority) && (!status || demand.status.toLowerCase().includes(status.toLowerCase())) && (!type || demand.items.some((item) => item.type === type)) && (!responsible || demand.developer === responsible || demand.items.some((item) => item.assignee === responsible)) && (!important || demand.items.some((item) => item.annotations.some((annotation) => annotation.semantic === "important"))) && (!pending || demand.items.some((item) => !isItemDone(item))));
+  const demands = all.filter((demand) => !isDemandPendingAnalysis(demand) && !isDemandRejected(demand) && !isDemandAwaitingConfirmation(demand) && (completedOnly ? isDemandDone(demand) : !isDemandDone(demand)) && (!q || `${demand.title} ${demand.sourceId ?? ""} ${demand.developer ?? ""}`.toLowerCase().includes(q)) && (!category || demand.category?.name === category) && (!priority || demand.priority === priority) && (!status || demand.status.toLowerCase().includes(status.toLowerCase())) && (!type || demand.items.some((item) => item.type === type)) && (!responsible || demand.developer === responsible || demand.items.some((item) => item.assignee === responsible)) && (!important || demand.items.some((item) => item.annotations.some((annotation) => annotation.semantic === "important"))) && (!pending || demand.items.some((item) => !isItemDone(item))));
   const itemCount = demands.reduce((total, demand) => total + demand.items.length, 0);
   const totalPages = Math.max(1, Math.ceil(demands.length / PAGE_SIZE));
   const requestedPage = Number.parseInt(one(params.page), 10) || 1;

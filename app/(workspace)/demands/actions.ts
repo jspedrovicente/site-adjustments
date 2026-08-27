@@ -20,6 +20,7 @@ export async function updateDemand(formData: FormData) {
   const supabase = await createClient();
   const { error: demandError } = await supabase.from("adjustment_demands").update({
     title,
+    heading_raw: optional(formData, "description"),
     category_id: optional(formData, "category_id"),
     priority: optional(formData, "priority"),
     status: optional(formData, "status"),
@@ -73,7 +74,7 @@ export async function createDemand(formData: FormData) {
   const { data: latest } = await supabase.from("adjustment_demands").select("source_order").order("source_order", { ascending: false }).limit(1).maybeSingle();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const { error: demandError } = await supabase.from("adjustment_demands").insert({ id, title, category_id: optional(formData, "category_id"), priority: optional(formData, "priority"), status: "Pendente de análise", developer: optional(formData, "developer"), deadline: optional(formData, "deadline"), source_key: `manual-${id}`, source_order: (latest?.source_order ?? 0) + 1, created_at: now, updated_at: now });
+  const { error: demandError } = await supabase.from("adjustment_demands").insert({ id, title, heading_raw: optional(formData, "description"), category_id: optional(formData, "category_id"), priority: optional(formData, "priority"), status: "Pendente de análise", developer: optional(formData, "developer"), deadline: optional(formData, "deadline"), source_key: `manual-${id}`, source_order: (latest?.source_order ?? 0) + 1, created_at: now, updated_at: now });
   if (demandError) throw new Error(`Não foi possível criar a demanda: ${demandError.message}`);
   const { error: itemsError } = await supabase.from("adjustment_items").insert(validItems.map((item, index) => ({ id: item.id, demand_id: id, item_type: item.type, description: item.description, semantics: [...(item.completed ? ["done" as const] : []), ...(item.assignee ? [{ semantic: "assignee", value: item.assignee }] : [])], sort_order: index + 1, source_key: `manual-${id}-${index + 1}`, created_at: now, updated_at: now })));
   if (itemsError) { await supabase.from("adjustment_demands").delete().eq("id", id); throw new Error(`Não foi possível criar os itens: ${itemsError.message}`); }
