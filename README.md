@@ -9,9 +9,12 @@ Crie `.env.local` a partir de `.env.example`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+APPROVAL_PASSWORD=escolha-uma-senha-forte
 ```
 
 Use somente a chave pública (`publishable` ou `anon`). A aplicação respeita RLS e não utiliza `service_role`.
+
+`APPROVAL_PASSWORD` permanece apenas no servidor. Novas demandas recebem o status `Pendente de aprovação`; depois da aprovação, passam para `Novo` e entram na listagem principal.
 
 ```bash
 npm install

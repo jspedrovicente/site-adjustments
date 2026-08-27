@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { BarChart3, CheckCircle2, CircleHelp, FolderKanban, LayoutList, Menu, Star, X } from "lucide-react";
+import { BarChart3, CheckCircle2, CircleHelp, FolderKanban, LayoutList, Menu, ShieldCheck, Star, X } from "lucide-react";
 const links = [
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 }, { href: "/demands", label: "Demandas", icon: LayoutList },
+  { href: "/dashboard", label: "Dashboard", icon: BarChart3 }, { href: "/demands", label: "Demandas", icon: LayoutList }, { href: "/approvals", label: "Pendentes de aprovação", icon: ShieldCheck },
   { href: "/demands?type=question", label: "Perguntas", icon: CircleHelp }, { href: "/demands?important=true", label: "Importantes", icon: Star },
-  { href: "/demands?status=concluido", label: "Concluídos", icon: CheckCircle2 }, { href: "/demands", label: "Categorias", icon: FolderKanban },
+  { href: "/demands?completed=true", label: "Concluídos", icon: CheckCircle2 }, { href: "/demands", label: "Categorias", icon: FolderKanban },
 ];
 export function AppShell({ children }: { children: React.ReactNode }) {
   return <div className="min-h-screen lg:grid lg:grid-cols-[248px_1fr]">
