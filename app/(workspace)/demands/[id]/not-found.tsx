@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function NotFound() { return <main className="grid min-h-[70vh] place-items-center p-6"><div className="text-center"><p className="text-sm font-semibold text-blue-700">Demanda não encontrada</p><h1 className="mt-2 text-2xl font-semibold">Este registro não existe ou foi removido.</h1><Link href="/demands" className="mt-6 inline-block rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Voltar para demandas</Link></div></main>; }

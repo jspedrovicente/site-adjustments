@@ -1,0 +1,12 @@
+import type { Tables } from "@/lib/database.types";
+export type ItemType = "change" | "question" | "reference" | "figma" | "other";
+export type AttachmentRole = "current_state" | "expected_state" | "reference" | "other";
+export type Category = { id: string; name: string };
+export type Attachment = { id: string; path: string; name: string; role: AttachmentRole; referenceLabel?: string; sharedReference: boolean; signedUrl?: string };
+export type Annotation = { id: string; semantic: string; text?: string };
+export type Link = { id: string; url: string; label?: string };
+export type DemandItem = { id: string; number?: string; type: ItemType; description: string; developerResponse?: string; completed: boolean; demandId: string; order: number; attachments: Attachment[]; annotations: Annotation[]; links: Link[] };
+export type Demand = { id: string; title: string; sourceId?: string; categoryId?: string; category?: Category; priority: string; status: string; developer?: string; deadline?: string; validationResult?: string; validationNotes?: string; updatedAt?: string; items: DemandItem[] };
+export const categoryFromRow = (row: Tables<"adjustment_categories">): Category => ({ id: row.id, name: row.name });
+export const demandFromRow = (row: Tables<"adjustment_demands">): Demand => ({ id: row.id, title: row.title, sourceId: row.source_id ?? undefined, categoryId: row.category_id ?? undefined, priority: row.priority ?? "Não definida", status: row.status ?? "Não definido", developer: row.developer ?? undefined, deadline: row.deadline ?? undefined, validationResult: row.validation_result ?? undefined, validationNotes: row.validation_notes ?? undefined, updatedAt: row.updated_at, items: [] });
+export const itemFromRow = (row: Tables<"adjustment_items">): DemandItem => { const raw = row.item_type.toLowerCase(); const type = (["change", "question", "reference", "figma", "other"].includes(raw) ? raw : "other") as ItemType; const semantics = Array.isArray(row.semantics) ? row.semantics : []; return { id: row.id, demandId: row.demand_id, number: row.source_item_label ?? row.source_item_number?.toString(), type, description: row.description ?? "Sem descrição", developerResponse: row.developer_response ?? undefined, completed: semantics.some((value) => value === "done" || (typeof value === "object" && value !== null && !Array.isArray(value) && value.semantic === "done")), order: row.sort_order, attachments: [], annotations: [], links: [] }; };

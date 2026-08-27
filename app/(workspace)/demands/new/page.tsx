@@ -1,0 +1,4 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+export default function NewDemandPage() { return <><PageHeader eyebrow="Cadastro" title="Nova demanda" description="A criação será habilitada assim que os tipos exatos do banco forem sincronizados."/><div className="p-5 sm:p-8 lg:p-10"><div className="panel max-w-2xl rounded-lg p-8"><p className="text-sm leading-6 text-slate-600">A credencial Supabase configurada atualmente não permite inspecionar as colunas necessárias para validar uma inserção com segurança. Atualize a chave publicável e gere os tipos antes de cadastrar dados.</p><Link href="/demands" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-blue-700"><ArrowLeft className="size-4"/>Voltar</Link></div></div></>; }
