@@ -98,7 +98,7 @@ async function uploadItemImage(supabase: SupabaseClient, demandId: string, itemI
   const path = `demands/${demandId}/${crypto.randomUUID()}.${extension}`;
   const { error: uploadError } = await supabase.storage.from("site-adjustments").upload(path, file, { contentType: file.type, upsert: false });
   if (uploadError) throw new Error(`Não foi possível enviar ${file.name}: ${uploadError.message}`);
-  const { data: attachment, error: attachmentError } = await supabase.from("adjustment_attachments").insert({ filename: file.name, mime_type: file.type, size_bytes: file.size, source_media: "manual_upload", storage_bucket: "site-adjustments", storage_path: path }).select("id").single();
+  const { data: attachment, error: attachmentError } = await supabase.from("adjustment_attachments").insert({ filename: file.name, mime_type: file.type, size_bytes: file.size, source_media: `manual:${path}`, storage_bucket: "site-adjustments", storage_path: path }).select("id").single();
   if (attachmentError) { await supabase.storage.from("site-adjustments").remove([path]); throw new Error(`Não foi possível registrar a imagem: ${attachmentError.message}`); }
   const { error: relationError } = await supabase.from("adjustment_item_attachments").insert({ attachment_id: attachment.id, demand_id: demandId, item_id: itemId, role, shared_reference: false });
   if (relationError) { await supabase.from("adjustment_attachments").delete().eq("id", attachment.id); await supabase.storage.from("site-adjustments").remove([path]); throw new Error(`Não foi possível associar a imagem ao item: ${relationError.message}`); }
