@@ -2,9 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 :root { color-scheme: light; }
-* { border-color: #e5e7eb; }
-body { margin: 0; background: #f7f8fa; color: #172033; font-family: var(--font-inter), ui-sans-serif, system-ui; }
+* { border-color: #d9def0; }
+body {
+  margin: 0;
+  background-color: #171a2f;
+  background-image:
+    radial-gradient(circle at 12% 8%, rgb(34 211 238 / 10%), transparent 25rem),
+    radial-gradient(circle at 88% 12%, rgb(139 92 246 / 12%), transparent 28rem),
+    linear-gradient(rgb(148 163 184 / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(148 163 184 / 5%) 1px, transparent 1px);
+  background-size: auto, auto, 28px 28px, 28px 28px;
+  color: #172033;
+  font-family: var(--font-inter), ui-sans-serif, system-ui;
+}
 button, input, select, textarea { font: inherit; }
+input, select, textarea { border-color: #cbd5e1; background-color: rgb(255 255 255 / 90%); color: #172033; }
+input:focus, select:focus, textarea:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgb(99 102 241 / 12%); outline: none; }
 a { color: inherit; text-decoration: none; }
-::selection { background: #dbeafe; }
-@layer components { .panel { @apply border border-slate-200 bg-white shadow-sm; } .focus-ring { @apply outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2; } }
+::selection { background: #c4b5fd; color: #312e81; }
+main.min-w-0 > main { color: #e2e8f0; }
+main.min-w-0 > main .text-slate-950,
+main.min-w-0 > main .text-slate-900 { color: #f8fafc; }
+main.min-w-0 > main .text-slate-800,
+main.min-w-0 > main .text-slate-700 { color: #e2e8f0; }
+main.min-w-0 > main .text-slate-600 { color: #cbd5e1; }
+main.min-w-0 > main .text-slate-500,
+main.min-w-0 > main .text-slate-400 { color: #94a3b8; }
+main.min-w-0 > main article.bg-white {
+  border-color: rgb(100 116 139 / 32%);
+  background-color: rgb(30 36 57 / 94%);
+  color: #e2e8f0;
+  box-shadow: 0 14px 38px rgb(3 7 18 / 30%);
+}
+main.min-w-0 > main [class*="bg-white"]:not(input):not(select):not(textarea) { background-color: rgb(37 44 69 / 92%); }
+main.min-w-0 > main [class*="bg-slate-50"]:not(input):not(select):not(textarea) { background-color: rgb(37 44 69 / 78%); }
+main.min-w-0 > main [class*="bg-red-50"] { background-color: rgb(244 63 94 / 8%); }
+main.min-w-0 > main [class*="bg-red-100"] { background-color: rgb(244 63 94 / 12%); }
+main.min-w-0 > main [class*="bg-amber-50"] { background-color: rgb(245 158 11 / 8%); }
+main.min-w-0 > main [class*="bg-amber-100"] { background-color: rgb(245 158 11 / 12%); }
+main.min-w-0 > main [class*="bg-blue-50"] { background-color: rgb(34 211 238 / 8%); }
+main.min-w-0 > main [class*="bg-blue-100"] { background-color: rgb(34 211 238 / 12%); }
+main.min-w-0 > main [class*="bg-emerald-50"] { background-color: rgb(52 211 153 / 8%); }
+main.min-w-0 > main [class*="bg-emerald-100"] { background-color: rgb(52 211 153 / 12%); }
+main.min-w-0 > main [class*="bg-violet-50"] { background-color: rgb(167 139 250 / 8%); }
+main.min-w-0 > main [class*="bg-violet-100"] { background-color: rgb(167 139 250 / 12%); }
+main.min-w-0 > main [class*="border-red-200"] { border-color: rgb(251 113 133 / 28%); }
+main.min-w-0 > main [class*="border-amber-200"] { border-color: rgb(251 191 36 / 28%); }
+main.min-w-0 > main [class*="border-blue-200"] { border-color: rgb(34 211 238 / 28%); }
+main.min-w-0 > main [class*="border-emerald-200"] { border-color: rgb(52 211 153 / 28%); }
+main.min-w-0 > main [class*="border-violet-200"] { border-color: rgb(167 139 250 / 28%); }
+main.min-w-0 > main [class*="text-red-7"],
+main.min-w-0 > main [class*="text-red-8"],
+main.min-w-0 > main [class*="text-red-9"] { color: #fda4af; }
+main.min-w-0 > main [class*="text-amber-7"],
+main.min-w-0 > main [class*="text-amber-8"] { color: #fde68a; }
+main.min-w-0 > main [class*="text-blue-7"],
+main.min-w-0 > main [class*="text-blue-8"] { color: #a5f3fc; }
+main.min-w-0 > main [class*="text-emerald-7"],
+main.min-w-0 > main [class*="text-emerald-8"] { color: #a7f3d0; }
+main.min-w-0 > main [class*="text-violet-7"],
+main.min-w-0 > main [class*="text-violet-8"] { color: #ddd6fe; }
+main.min-w-0 input:not([type="checkbox"]):not([type="radio"]),
+main.min-w-0 select,
+main.min-w-0 textarea {
+  border-color: rgb(100 116 139 / 55%);
+  background-color: #171c30;
+  color: #e2e8f0;
+}
+main.min-w-0 input::placeholder,
+main.min-w-0 textarea::placeholder { color: #64748b; }
+@layer components {
+  .panel {
+    @apply border shadow-sm backdrop-blur-sm;
+    border-color: rgb(100 116 139 / 32%);
+    background: rgb(30 36 57 / 94%);
+    color: #e2e8f0;
+    box-shadow: 0 14px 38px rgb(3 7 18 / 30%), inset 0 1px 0 rgb(255 255 255 / 5%);
+  }
+  .panel .text-slate-950,
+  .panel .text-slate-900,
+  .panel .text-slate-800 { color: #f8fafc; }
+  .panel .text-slate-700,
+  .panel .text-slate-600 { color: #cbd5e1; }
+  .panel .text-slate-500,
+  .panel .text-slate-400 { color: #94a3b8; }
+  .panel .bg-slate-50 { background-color: rgb(51 60 85 / 72%); }
+  .panel .border-slate-200,
+  .panel .divide-slate-200 { border-color: rgb(100 116 139 / 30%); }
+  .focus-ring { @apply outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2; }
+}
