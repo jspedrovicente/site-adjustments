@@ -5,9 +5,9 @@ import { isDemandAwaitingConfirmation, isDemandDone, isDemandPendingAnalysis, is
 import { PageHeader } from "@/components/page-header";
 
 export const metadata = { title: "Dashboard" };
-const knownDevelopers = ["Vitor Moraes", "Lauro", "José", "Marco", "Elvis", "Wanderson"];
+const knownMembers = ["Vitor Moraes", "Lauro", "José", "Marco", "Elvis", "Wanderson", "João Guimarães"];
 
-type Assignment = { kind: "demand" | "item"; demand: Demand; item?: DemandItem; label: string };
+type Assignment = { kind: "demand" | "item" | "analysis" | "confirmation"; demand: Demand; item?: DemandItem; label: string; href?: string };
 
 export default async function DashboardPage() {
   const demands = await getDemands();
@@ -34,8 +34,10 @@ export default async function DashboardPage() {
     else result.undefined += 1;
     return result;
   }, { alta: 0, media: 0, baixa: 0, undefined: 0 });
-  const names = [...new Set([...knownDevelopers, ...approvedDemands.flatMap((demand) => [demand.developer, ...demand.items.map((item) => item.assignee)]).filter((value): value is string => !!value)])];
+  const names = [...new Set([...knownMembers, ...approvedDemands.flatMap((demand) => [demand.developer, ...demand.items.map((item) => item.assignee)]).filter((value): value is string => !!value)])];
   const assignments = new Map<string, Assignment[]>(names.map((name) => [name, []]));
+  demands.filter(isDemandPendingAnalysis).forEach((demand) => assignments.get("Marco")?.push({ kind: "analysis", demand, label: "Pendente de análise", href: "/approvals" }));
+  approvedDemands.filter(isDemandAwaitingConfirmation).forEach((demand) => assignments.get("João Guimarães")?.push({ kind: "confirmation", demand, label: "Pendente de confirmação", href: "/confirmations" }));
   for (const demand of approvedDemands) {
     if (demand.developer && !isDemandDone(demand) && !isDemandAwaitingConfirmation(demand)) assignments.get(demand.developer)?.push({ kind: "demand", demand, label: demand.title });
     demand.items.forEach((item, index) => {
@@ -50,7 +52,7 @@ export default async function DashboardPage() {
       <section className="panel rounded-xl p-5"><div className="mb-4"><h2 className="text-base font-semibold text-white">Demandas por prioridade</h2><p className="mt-1 text-xs text-slate-400">Distribuição das demandas aprovadas</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><PriorityStat label="Alta" value={priorityCounts.alta} className="border-rose-400/25 bg-rose-400/5 text-rose-200"/><PriorityStat label="Média" value={priorityCounts.media} className="border-amber-400/25 bg-amber-400/5 text-amber-200"/><PriorityStat label="Baixa" value={priorityCounts.baixa} className="border-cyan-400/25 bg-cyan-400/5 text-cyan-200"/><PriorityStat label="Não definida" value={priorityCounts.undefined} className="border-slate-500/30 bg-slate-500/5 text-slate-300"/></div></section>
       <div className="grid gap-8 xl:grid-cols-[minmax(240px,1fr)_minmax(0,3fr)]">
         <section><h2 className="mb-3 text-base font-semibold text-slate-950">Demandas por categoria</h2><div className="panel divide-y rounded-lg">{categories.length ? categories.map(([name, count]) => <div key={name} className="flex items-center justify-between px-4 py-3 text-sm"><span>{name}</span><span className="font-semibold">{count}</span></div>) : <p className="p-5 text-sm text-slate-500">Nenhuma categoria encontrada.</p>}</div></section>
-        <section><div className="mb-3 flex items-center justify-between"><h2 className="text-base font-semibold text-slate-950">Atribuições por desenvolvedor</h2><span className="text-xs text-slate-500">Somente trabalhos pendentes</span></div><div className="grid gap-4 lg:grid-cols-2">{names.map((name) => <DeveloperAssignments key={name} name={name} assignments={assignments.get(name) ?? []}/>)}</div></section>
+        <section><div className="mb-3 flex items-center justify-between"><h2 className="text-base font-semibold text-slate-950">Atribuição por membro da equipe</h2><span className="text-xs text-slate-500">Somente trabalhos pendentes</span></div><div className="grid gap-4 lg:grid-cols-2">{names.map((name) => <MemberAssignments key={name} name={name} assignments={assignments.get(name) ?? []}/>)}</div></section>
       </div>
     </div>
   </>;
@@ -58,14 +60,18 @@ export default async function DashboardPage() {
 
 function PriorityStat({ label, value, className }: { label: string; value: number; className: string }) { return <div className={`flex items-center justify-between rounded-lg border px-4 py-3 ${className}`}><span className="font-mono text-xs font-semibold uppercase tracking-wide">{label}</span><strong className="text-2xl text-white">{value}</strong></div>; }
 
-function DeveloperAssignments({ name, assignments }: { name: string; assignments: Assignment[] }) {
+function MemberAssignments({ name, assignments }: { name: string; assignments: Assignment[] }) {
+  const queues = assignments.filter((assignment) => assignment.kind === "analysis" || assignment.kind === "confirmation");
   const demands = assignments.filter((assignment) => assignment.kind === "demand");
   const items = assignments.filter((assignment) => assignment.kind === "item");
-  const visible = [...demands, ...items].slice(0, 5);
-  return <details className="panel group overflow-hidden rounded-xl"><summary className="flex cursor-pointer list-none items-center justify-between bg-slate-950/25 px-4 py-3 marker:hidden"><h3 className="flex items-center gap-2 text-sm font-semibold text-white"><span className="grid size-8 place-items-center rounded-full border border-violet-400/20 bg-violet-400/10 text-violet-200"><UserRound className="size-4"/></span>{name}</h3><div className="flex items-center gap-3"><span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold text-cyan-200">{assignments.length}</span><span className="text-lg text-slate-400 transition group-open:rotate-180">⌄</span></div></summary><div className="border-t border-slate-700/60">{assignments.length ? <div className="divide-y divide-slate-700/60">{visible.map((assignment) => <AssignmentRow key={assignment.kind === "demand" ? `d-${assignment.demand.id}` : `i-${assignment.item?.id}`} assignment={assignment}/>)}{assignments.length > 5 && <p className="bg-slate-950/20 px-4 py-2.5 text-center text-xs font-medium text-slate-400">+ {assignments.length - 5} atribuições não exibidas</p>}</div> : <p className="px-4 py-6 text-center text-sm text-slate-400">Nenhuma atribuição pendente</p>}</div></details>;
+  const visible = [...queues, ...demands, ...items].slice(0, 5);
+  return <details className="panel group overflow-hidden rounded-xl"><summary className="flex cursor-pointer list-none items-center justify-between bg-slate-950/25 px-4 py-3 marker:hidden"><h3 className="flex items-center gap-2 text-sm font-semibold text-white"><span className="grid size-8 place-items-center rounded-full border border-violet-400/20 bg-violet-400/10 text-violet-200"><UserRound className="size-4"/></span>{name}</h3><div className="flex items-center gap-3"><span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold text-cyan-200">{assignments.length}</span><span className="text-lg text-slate-400 transition group-open:rotate-180">⌄</span></div></summary><div className="border-t border-slate-700/60">{assignments.length ? <div className="divide-y divide-slate-700/60">{visible.map((assignment) => <AssignmentRow key={`${assignment.kind}-${assignment.demand.id}-${assignment.item?.id ?? "queue"}`} assignment={assignment}/>)}{assignments.length > 5 && <p className="bg-slate-950/20 px-4 py-2.5 text-center text-xs font-medium text-slate-400">+ {assignments.length - 5} atribuições não exibidas</p>}</div> : <p className="px-4 py-6 text-center text-sm text-slate-400">Nenhuma atribuição pendente</p>}</div></details>;
 }
 
 function AssignmentRow({ assignment }: { assignment: Assignment }) {
   const item = assignment.item;
-  return <Link href={`/demands/${assignment.demand.id}`} className="block px-4 py-3 transition hover:bg-white/5"><div className="flex items-center gap-2"><span className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold uppercase ${assignment.kind === "demand" ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200" : "border-amber-400/20 bg-amber-400/10 text-amber-200"}`}>{assignment.kind === "demand" ? "Demanda" : assignment.label}</span><span className="truncate text-xs text-slate-400">{assignment.demand.category?.name}</span></div><p className="mt-1.5 truncate text-sm font-medium text-slate-100">{assignment.kind === "demand" ? assignment.demand.title : item?.description}</p>{assignment.kind === "item" && <p className="mt-1 flex items-center gap-1 text-xs text-slate-400"><ListChecks className="size-3"/>{assignment.demand.title}</p>}</Link>;
+  const queue = assignment.kind === "analysis" || assignment.kind === "confirmation";
+  const badge = assignment.kind === "analysis" ? "Análise" : assignment.kind === "confirmation" ? "Confirmação" : assignment.kind === "demand" ? "Demanda" : assignment.label;
+  const color = assignment.kind === "analysis" ? "border-violet-400/20 bg-violet-400/10 text-violet-200" : assignment.kind === "confirmation" ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200" : assignment.kind === "demand" ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200" : "border-amber-400/20 bg-amber-400/10 text-amber-200";
+  return <Link href={assignment.href ?? `/demands/${assignment.demand.id}`} className="block px-4 py-3 transition hover:bg-white/5"><div className="flex items-center gap-2"><span className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold uppercase ${color}`}>{badge}</span><span className="truncate text-xs text-slate-400">{assignment.demand.category?.name}</span></div><p className="mt-1.5 truncate text-sm font-medium text-slate-100">{assignment.kind === "item" ? item?.description : assignment.demand.title}</p>{assignment.kind === "item" && <p className="mt-1 flex items-center gap-1 text-xs text-slate-400"><ListChecks className="size-3"/>{assignment.demand.title}</p>}{queue && <p className="mt-1 text-xs text-slate-400">Abrir fila de {assignment.kind === "analysis" ? "análise" : "confirmação"} →</p>}</Link>;
 }
