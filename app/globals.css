@@ -28,6 +28,13 @@ main.min-w-0 > main .text-slate-700 { color: #e2e8f0; }
 main.min-w-0 > main .text-slate-600 { color: #cbd5e1; }
 main.min-w-0 > main .text-slate-500,
 main.min-w-0 > main .text-slate-400 { color: #94a3b8; }
+main.min-w-0 > div .text-slate-950,
+main.min-w-0 > div .text-slate-900 { color: #f8fafc; }
+main.min-w-0 > div .text-slate-800,
+main.min-w-0 > div .text-slate-700 { color: #e2e8f0; }
+main.min-w-0 > div .text-slate-600 { color: #cbd5e1; }
+main.min-w-0 > div .text-slate-500,
+main.min-w-0 > div .text-slate-400 { color: #94a3b8; }
 main.min-w-0 > main article.bg-white {
   border-color: rgb(100 116 139 / 32%);
   background-color: rgb(30 36 57 / 94%);
