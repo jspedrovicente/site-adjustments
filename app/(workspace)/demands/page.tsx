@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { getDemands } from "@/lib/data/demands";
 import { PageHeader } from "@/components/page-header";
 import { DemandCard } from "@/components/demand-card";
-import { isDemandAwaitingConfirmation, isDemandDone, isDemandPendingAnalysis, isDemandRejected, isItemDone } from "@/lib/data/model";
+import { isDemandAwaitingConfirmation, isDemandDone, isDemandPendingAnalysis, isDemandPostGoLive, isDemandRejected, isItemDone } from "@/lib/data/model";
 
 export const metadata = { title: "Demandas" };
 type RawParams = Record<string, string | string[] | undefined>;
@@ -13,7 +13,7 @@ const one = (value: string | string[] | undefined) => Array.isArray(value) ? val
 
 export default async function DemandsPage({ searchParams }: { searchParams: Params }) {
   const params = await searchParams;
-  const all = await getDemands();
+  const all = (await getDemands()).filter((demand) => !isDemandPostGoLive(demand));
   const q = one(params.q).toLowerCase(), category = one(params.category), priority = one(params.priority), status = one(params.status), type = one(params.type), responsible = one(params.responsible);
   const important = one(params.important) === "true", pending = one(params.pending) === "true", completedOnly = one(params.completed) === "true";
   const values = (key: "priority" | "status") => [...new Set(all.map((demand) => demand[key]).filter(Boolean))].sort();

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getDemands } from "@/lib/data/demands";
-import { isDemandPendingAnalysis } from "@/lib/data/model";
+import { isDemandPendingAnalysis, isDemandPostGoLive } from "@/lib/data/model";
 import { approveDemand, rejectDemand } from "./actions";
 
 type Params = Promise<Record<string, string | string[] | undefined>>;
@@ -39,7 +39,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pa
 
       {demands.map((demand) => <article key={demand.id} className="panel rounded-xl p-5">
         <div>
-          <p className="font-mono text-xs font-semibold uppercase tracking-wide text-amber-200">{demand.category?.name ?? "Sem categoria"}</p>
+          <div className="flex flex-wrap items-center gap-2"><p className="font-mono text-xs font-semibold uppercase tracking-wide text-amber-200">{demand.category?.name ?? "Sem categoria"}</p>{isDemandPostGoLive(demand) && <span className="rounded-full border border-violet-400/25 bg-violet-400/10 px-2.5 py-1 text-[11px] font-semibold text-violet-200">Pós-go-live</span>}</div>
           <Link href={`/demands/${demand.id}`} className="mt-1 block text-lg font-semibold text-white hover:text-cyan-300">{demand.title}</Link>
           <p className="mt-2 text-sm text-slate-400">{demand.items.length} itens · Responsável: {demand.developer ?? "Não atribuído"}</p>
         </div>

@@ -11,9 +11,13 @@ export async function approveDemand(formData: FormData) {
   const receivedBuffer = Buffer.from(password), expectedBuffer = Buffer.from(expected);
   if (receivedBuffer.length !== expectedBuffer.length || !timingSafeEqual(receivedBuffer, expectedBuffer)) redirect("/approvals?error=invalid-password");
   const supabase = await createClient();
-  const { data, error } = await supabase.from("adjustment_demands").update({ status: "Novo", updated_at: new Date().toISOString() }).eq("id", id).in("status", ["Pendente de análise", "Pendente de aprovação"]).select("id").maybeSingle();
+  const { data: current } = await supabase.from("adjustment_demands").select("status").eq("id", id).maybeSingle();
+  if (!current || !(current.status?.startsWith("Pendente de análise") || current.status === "Pendente de aprovação")) redirect("/approvals?error=update-failed");
+  const currentStatus = current.status ?? "";
+  const approvedStatus = currentStatus.includes("Pós-go-live") ? "Pós-go-live" : "Novo";
+  const { data, error } = await supabase.from("adjustment_demands").update({ status: approvedStatus, updated_at: new Date().toISOString() }).eq("id", id).eq("status", currentStatus).select("id").maybeSingle();
   if (error || !data) redirect("/approvals?error=update-failed");
-  revalidatePath("/approvals"); revalidatePath("/demands"); revalidatePath("/dashboard");
+  revalidatePath("/approvals"); revalidatePath("/demands"); revalidatePath("/dashboard"); revalidatePath("/post-go-live");
   redirect("/approvals?approved=true");
 }
 
@@ -24,7 +28,10 @@ export async function rejectDemand(formData: FormData) {
   const receivedBuffer = Buffer.from(password), expectedBuffer = Buffer.from(expected);
   if (receivedBuffer.length !== expectedBuffer.length || !timingSafeEqual(receivedBuffer, expectedBuffer)) redirect("/approvals?error=invalid-password");
   const supabase = await createClient();
-  const { data, error } = await supabase.from("adjustment_demands").update({ status: "Reprovada", validation_result: "Reprovada na análise", validation_notes: reason.trim(), updated_at: new Date().toISOString() }).eq("id", id).in("status", ["Pendente de análise", "Pendente de aprovação"]).select("id").maybeSingle();
+  const { data: current } = await supabase.from("adjustment_demands").select("status").eq("id", id).maybeSingle();
+  if (!current || !(current.status?.startsWith("Pendente de análise") || current.status === "Pendente de aprovação")) redirect("/approvals?error=update-failed");
+  const currentStatus = current.status ?? "";
+  const { data, error } = await supabase.from("adjustment_demands").update({ status: "Reprovada", validation_result: "Reprovada na análise", validation_notes: reason.trim(), updated_at: new Date().toISOString() }).eq("id", id).eq("status", currentStatus).select("id").maybeSingle();
   if (error || !data) redirect("/approvals?error=update-failed");
   revalidatePath("/approvals"); revalidatePath("/rejected"); revalidatePath("/demands"); revalidatePath("/dashboard");
   redirect("/approvals?rejected=true");

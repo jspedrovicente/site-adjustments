@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { BarChart3, CheckCircle2, LayoutList, Menu, ShieldCheck, BadgeCheck, Ban, Building2, Rocket, X } from "lucide-react";
+import { BarChart3, CalendarClock, CheckCircle2, LayoutList, Menu, ShieldCheck, BadgeCheck, Ban, Building2, Rocket, X } from "lucide-react";
 const links = [
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 }, { href: "/demands", label: "Demandas", icon: LayoutList }, { href: "/approvals", label: "Pendentes de análise", icon: ShieldCheck }, { href: "/rejected", label: "Demandas reprovadas", icon: Ban }, { href: "/confirmations", label: "Pendentes de confirmação", icon: BadgeCheck }, { href: "/future-versions", label: "Próximas versões", icon: Rocket },
+  { href: "/dashboard", label: "Dashboard", icon: BarChart3 }, { href: "/demands", label: "Demandas", icon: LayoutList }, { href: "/approvals", label: "Pendentes de análise", icon: ShieldCheck }, { href: "/rejected", label: "Demandas reprovadas", icon: Ban }, { href: "/confirmations", label: "Pendentes de confirmação", icon: BadgeCheck }, { href: "/post-go-live", label: "Demandas pós-go-live", icon: CalendarClock }, { href: "/future-versions", label: "Próximas versões", icon: Rocket },
   { href: "/demands?completed=true", label: "Concluídos", icon: CheckCircle2 },
 ];
 export function AppShell({ children }: { children: React.ReactNode }) {

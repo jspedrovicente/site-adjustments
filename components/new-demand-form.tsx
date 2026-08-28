@@ -31,6 +31,10 @@ export function NewDemandForm({ categories, action }: { categories: Category[]; 
           <Select label="Prioridade" name="priority" options={["Alta", "Média", "Baixa"].map((value) => ({ value, label: value }))}/>
           <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-200"><AlertTriangle className="size-3.5"/>Tente sempre definir um nível de prioridade para a demanda.</p>
         </div>
+        <label className="sm:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border border-violet-400/20 bg-violet-400/5 p-4">
+          <input type="checkbox" name="post_go_live" className="mt-0.5 size-4 accent-violet-500"/>
+          <span><strong className="block text-sm text-violet-100">Demanda pós-go-live</strong><span className="mt-1 block text-xs leading-5 text-slate-400">Depois da aprovação, esta demanda irá para o módulo Pós-go-live e não entrará no backlog atual de desenvolvimento.</span></span>
+        </label>
       </div>
 
       <div className="mt-5 rounded-xl border border-indigo-400/20 bg-slate-950/35 p-4">

@@ -11,7 +11,8 @@ export type Demand = { id: string; title: string; description?: string; sourceId
 export const isItemDone = (item: DemandItem) => item.completed || item.annotations.some((annotation) => annotation.semantic === "done");
 export const areDemandItemsDone = (demand: Demand) => demand.items.length > 0 && demand.items.every(isItemDone);
 export const isDemandDone = (demand: Demand) => demand.status === "Finalizada";
-export const isDemandPendingAnalysis = (demand: Demand) => demand.status === "Pendente de análise" || demand.status === "Pendente de aprovação";
+export const isDemandPendingAnalysis = (demand: Demand) => demand.status.startsWith("Pendente de análise") || demand.status === "Pendente de aprovação";
+export const isDemandPostGoLive = (demand: Demand) => demand.status.includes("Pós-go-live");
 export const isDemandRejected = (demand: Demand) => demand.status === "Reprovada";
 export const isDemandAwaitingConfirmation = (demand: Demand) => areDemandItemsDone(demand) && !isDemandDone(demand) && !isDemandPendingAnalysis(demand) && !isDemandRejected(demand);
 export const categoryFromRow = (row: Tables<"adjustment_categories">): Category => ({ id: row.id, name: row.name });

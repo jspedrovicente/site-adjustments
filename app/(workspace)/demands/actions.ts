@@ -64,12 +64,14 @@ export async function updateDemand(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/demands");
   revalidatePath("/future-versions");
+  revalidatePath("/post-go-live");
   revalidatePath(`/demands/${id}`);
   redirect(`/demands/${id}`);
 }
 
 export async function createDemand(formData: FormData) {
   const title = optional(formData, "title");
+  const postGoLive = formData.get("post_go_live") === "on";
   if (!title) throw new Error("O título da demanda é obrigatório.");
   const descriptions = formData.getAll("item_description").filter((value): value is string => typeof value === "string");
   const types = formData.getAll("item_type").filter((value): value is string => typeof value === "string");
@@ -81,7 +83,7 @@ export async function createDemand(formData: FormData) {
   const { data: latest } = await supabase.from("adjustment_demands").select("source_order").order("source_order", { ascending: false }).limit(1).maybeSingle();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const { error: demandError } = await supabase.from("adjustment_demands").insert({ id, title, heading_raw: optional(formData, "description"), category_id: optional(formData, "category_id"), priority: optional(formData, "priority"), status: "Pendente de análise", developer: optional(formData, "developer"), deadline: optional(formData, "deadline"), source_key: `manual-${id}`, source_order: (latest?.source_order ?? 0) + 1, created_at: now, updated_at: now });
+  const { error: demandError } = await supabase.from("adjustment_demands").insert({ id, title, heading_raw: optional(formData, "description"), category_id: optional(formData, "category_id"), priority: optional(formData, "priority"), status: postGoLive ? "Pendente de análise · Pós-go-live" : "Pendente de análise", developer: optional(formData, "developer"), deadline: optional(formData, "deadline"), source_key: `manual-${id}`, source_order: (latest?.source_order ?? 0) + 1, created_at: now, updated_at: now });
   if (demandError) throw new Error(`Não foi possível criar a demanda: ${demandError.message}`);
   const { error: itemsError } = await supabase.from("adjustment_items").insert(validItems.map((item, index) => ({ id: item.id, demand_id: id, item_type: item.type, description: item.description, semantics: [...(item.completed ? ["done" as const] : []), ...(item.assignee ? [{ semantic: "assignee", value: item.assignee }] : [])], sort_order: index + 1, source_key: `manual-${id}-${index + 1}`, created_at: now, updated_at: now })));
   if (itemsError) { await supabase.from("adjustment_demands").delete().eq("id", id); throw new Error(`Não foi possível criar os itens: ${itemsError.message}`); }
@@ -111,7 +113,7 @@ export async function updateItemResolution(formData: FormData) {
   const marker: Json[] = resolution === "done" ? ["done"] : resolution === "pending" ? [] : [{ semantic: "completion", value: resolution }];
   const { data, error } = await supabase.from("adjustment_items").update({ semantics: [...preserved, ...marker], developer_response: response, updated_at: new Date().toISOString() }).eq("id", itemId).eq("demand_id", demandId).select("id").single();
   if (error || !data) throw new Error(`Não foi possível atualizar o estado do item: ${error?.message ?? "registro não atualizado"}`);
-  revalidatePath(`/demands/${demandId}`); revalidatePath("/demands"); revalidatePath("/dashboard"); revalidatePath("/confirmations"); revalidatePath("/future-versions");
+  revalidatePath(`/demands/${demandId}`); revalidatePath("/demands"); revalidatePath("/dashboard"); revalidatePath("/confirmations"); revalidatePath("/future-versions"); revalidatePath("/post-go-live");
   redirect(`/demands/${demandId}`);
 }
 
