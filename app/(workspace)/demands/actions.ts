@@ -39,8 +39,8 @@ export async function updateDemand(formData: FormData) {
   for (const itemId of itemIds) {
     const resolution = optional(formData, `resolution_${itemId}`) ?? "pending";
     const response = optional(formData, `developer_response_${itemId}`);
-    if (!["pending", "done", "done_with_caveats", "business_rule_conflict"].includes(resolution)) throw new Error("Estado do item inválido.");
-    if (["done_with_caveats", "business_rule_conflict"].includes(resolution) && !response) throw new Error("Escreva uma justificativa para os itens concluídos com ressalvas ou por quebra de regra de negócio.");
+    if (!["pending", "done", "done_with_caveats", "business_rule_conflict", "future_version"].includes(resolution)) throw new Error("Estado do item inválido.");
+    if (["done_with_caveats", "business_rule_conflict", "future_version"].includes(resolution) && !response) throw new Error("Escreva uma justificativa para os itens com ressalvas, quebra de regra ou destinados a uma futura versão.");
   }
   const results = await Promise.all(itemIds.map((itemId) => supabase.from("adjustment_items").update({
     item_type: optional(formData, `item_type_${itemId}`) ?? "other",
@@ -63,6 +63,7 @@ export async function updateDemand(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/demands");
+  revalidatePath("/future-versions");
   revalidatePath(`/demands/${id}`);
   redirect(`/demands/${id}`);
 }
@@ -100,8 +101,8 @@ function withItemMetadata(value: Json | undefined, resolution: string, assignee:
 
 export async function updateItemResolution(formData: FormData) {
   const demandId = optional(formData, "demand_id"), itemId = optional(formData, "item_id"), resolution = optional(formData, "resolution") ?? "pending", response = optional(formData, "developer_response");
-  if (!demandId || !itemId || !["pending", "done", "done_with_caveats", "business_rule_conflict"].includes(resolution)) throw new Error("Estado do item inválido.");
-  if (["done_with_caveats", "business_rule_conflict"].includes(resolution) && !response) throw new Error("Escreva uma justificativa para concluir o item com ressalvas ou por quebra de regra de negócio.");
+  if (!demandId || !itemId || !["pending", "done", "done_with_caveats", "business_rule_conflict", "future_version"].includes(resolution)) throw new Error("Estado do item inválido.");
+  if (["done_with_caveats", "business_rule_conflict", "future_version"].includes(resolution) && !response) throw new Error("Escreva uma justificativa para concluir o item com ressalvas, quebra de regra ou encaminhá-lo para uma futura versão.");
   const supabase = await createClient();
   const { data: current, error: readError } = await supabase.from("adjustment_items").select("semantics").eq("id", itemId).eq("demand_id", demandId).single();
   if (readError) throw new Error(`Não foi possível ler o item: ${readError.message}`);
@@ -110,7 +111,7 @@ export async function updateItemResolution(formData: FormData) {
   const marker: Json[] = resolution === "done" ? ["done"] : resolution === "pending" ? [] : [{ semantic: "completion", value: resolution }];
   const { data, error } = await supabase.from("adjustment_items").update({ semantics: [...preserved, ...marker], developer_response: response, updated_at: new Date().toISOString() }).eq("id", itemId).eq("demand_id", demandId).select("id").single();
   if (error || !data) throw new Error(`Não foi possível atualizar o estado do item: ${error?.message ?? "registro não atualizado"}`);
-  revalidatePath(`/demands/${demandId}`); revalidatePath("/demands"); revalidatePath("/dashboard"); revalidatePath("/confirmations");
+  revalidatePath(`/demands/${demandId}`); revalidatePath("/demands"); revalidatePath("/dashboard"); revalidatePath("/confirmations"); revalidatePath("/future-versions");
   redirect(`/demands/${demandId}`);
 }
 
