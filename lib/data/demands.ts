@@ -17,7 +17,7 @@ export const getDemands = cache(async (): Promise<Demand[]> => {
   if (failed?.error) throw new Error(`Não foi possível carregar as demandas: ${failed.error.message}`);
   const categories = (categoryResult.data ?? []).map(categoryFromRow);
   const demands = (demandResult.data ?? []).map(demandFromRow);
-  const items = (itemResult.data ?? []).map(itemFromRow);
+  const items = (itemResult.data ?? []).map((row) => ({ ...itemFromRow(row), createdAt: row.created_at, updatedAt: row.updated_at }));
   const itemMap = new Map(items.map((item) => [item.id, item]));
   const attachments = new Map((attachmentResult.data ?? []).map((row) => [row.id, row]));
   for (const relation of joinResult.data ?? []) {

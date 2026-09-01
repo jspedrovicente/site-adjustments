@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { BarChart3, CalendarClock, CheckCircle2, LayoutList, Menu, ShieldCheck, BadgeCheck, Ban, Building2, Rocket, Users, X } from "lucide-react";
+import { Activity, BarChart3, CalendarClock, CheckCircle2, LayoutList, Menu, ShieldCheck, BadgeCheck, Ban, Building2, Rocket, Users, X } from "lucide-react";
 const links = [
+  { href: "/daily", label: "Daily da equipe", icon: Activity },
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 }, { href: "/demands", label: "Demandas", icon: LayoutList }, { href: "/approvals", label: "Pendentes de análise", icon: ShieldCheck }, { href: "/rejected", label: "Demandas reprovadas", icon: Ban }, { href: "/confirmations", label: "Pendentes de confirmação", icon: BadgeCheck }, { href: "/post-go-live", label: "Demandas pós-go-live", icon: CalendarClock }, { href: "/future-versions", label: "Próximas versões", icon: Rocket }, { href: "/team", label: "Membros da equipe", icon: Users },
   { href: "/demands?completed=true", label: "Concluídos", icon: CheckCircle2 },
 ];
