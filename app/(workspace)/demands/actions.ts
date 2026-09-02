@@ -51,7 +51,6 @@ export async function updateDemand(formData: FormData) {
   }).eq("id", itemId).eq("demand_id", id)));
   const itemError = results.find((result) => result.error)?.error;
   if (itemError) throw new Error(`A demanda foi atualizada, mas um item falhou: ${itemError.message}`);
-  await finalizeIfAllItemsResolved(supabase, id);
   const { data: importantAnnotations, error: annotationReadError } = await supabase.from("adjustment_annotations").select("id,item_id").in("item_id", itemIds).eq("semantic", "important");
   if (annotationReadError) throw new Error(`Não foi possível ler as marcações importantes: ${annotationReadError.message}`);
   for (const itemId of itemIds) {
@@ -115,21 +114,11 @@ export async function updateItemResolution(formData: FormData) {
   const marker: Json[] = resolution === "done" ? ["done"] : resolution === "pending" ? [] : [{ semantic: "completion", value: resolution }];
   const { data, error } = await supabase.from("adjustment_items").update({ semantics: [...preserved, ...marker], developer_response: response, updated_at: new Date().toISOString() }).eq("id", itemId).eq("demand_id", demandId).select("id").single();
   if (error || !data) throw new Error(`Não foi possível atualizar o estado do item: ${error?.message ?? "registro não atualizado"}`);
-  await finalizeIfAllItemsResolved(supabase, demandId);
   revalidatePath(`/demands/${demandId}`); revalidatePath("/demands"); revalidatePath("/dashboard"); revalidatePath("/daily"); revalidatePath("/confirmations"); revalidatePath("/future-versions"); revalidatePath("/post-go-live");
   redirect(`/demands/${demandId}`);
 }
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
-async function finalizeIfAllItemsResolved(supabase: SupabaseClient, demandId: string) {
-  const { data: items, error } = await supabase.from("adjustment_items").select("semantics").eq("demand_id", demandId);
-  if (error) throw new Error(`Não foi possível verificar a conclusão da demanda: ${error.message}`);
-  if (!items?.length) return;
-  const allResolved = items.every((item) => Array.isArray(item.semantics) && item.semantics.some((value) => value === "done" || (typeof value === "object" && value !== null && !Array.isArray(value) && value.semantic === "completion" && value.value !== "pending")));
-  if (!allResolved) return;
-  const { error: finalizeError } = await supabase.from("adjustment_demands").update({ status: "Finalizada", updated_at: new Date().toISOString() }).eq("id", demandId);
-  if (finalizeError) throw new Error(`Os itens foram atualizados, mas não foi possível finalizar a demanda: ${finalizeError.message}`);
-}
 async function uploadItemImage(supabase: SupabaseClient, demandId: string, itemId: string, file: File, role: string) {
   if (!file.type.startsWith("image/")) throw new Error("Somente arquivos de imagem são permitidos.");
   if (file.size > 10 * 1024 * 1024) throw new Error("A imagem deve ter no máximo 10 MB.");
