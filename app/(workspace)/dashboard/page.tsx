@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BadgeCheck, CheckCircle2, ClipboardList, Clock3, ListChecks, ShieldCheck, Star, UserRound } from "lucide-react";
 import { getDemands } from "@/lib/data/demands";
-import { isDemandAwaitingConfirmation, isDemandDone, isDemandPendingAnalysis, isDemandPostGoLive, isDemandRejected, isItemDone, type Demand, type DemandItem } from "@/lib/data/model";
+import { isDemandAwaitingConfirmation, isDemandDone, isDemandDraft, isDemandPendingAnalysis, isDemandPostGoLive, isDemandRejected, isItemDone, type Demand, type DemandItem } from "@/lib/data/model";
 import { PageHeader } from "@/components/page-header";
 
 export const metadata = { title: "Dashboard" };
@@ -11,7 +11,7 @@ type Assignment = { kind: "demand" | "item" | "analysis" | "confirmation"; deman
 
 export default async function DashboardPage() {
   const demands = await getDemands();
-  const approvedDemands = demands.filter((demand) => !isDemandPendingAnalysis(demand) && !isDemandPostGoLive(demand) && !isDemandRejected(demand));
+  const approvedDemands = demands.filter((demand) => !isDemandPendingAnalysis(demand) && !isDemandPostGoLive(demand) && !isDemandRejected(demand) && !isDemandDraft(demand));
   const items = approvedDemands.flatMap((demand) => demand.items);
   const stats = [
     { label: "Total de demandas", value: approvedDemands.length, icon: ClipboardList },

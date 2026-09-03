@@ -3,12 +3,13 @@ import { ArrowRight, Layers3, Rocket, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/badges";
 import { getDemands } from "@/lib/data/demands";
+import { isDemandDraft } from "@/lib/data/model";
 
 export const metadata = { title: "Próximas versões" };
 
 export default async function FutureVersionsPage() {
   const demands = await getDemands();
-  const futureDemands = demands.map((demand) => ({
+  const futureDemands = demands.filter((demand) => !isDemandDraft(demand)).map((demand) => ({
     demand,
     items: demand.items.filter((item) => item.resolution === "future_version"),
   })).filter(({ items }) => items.length > 0);

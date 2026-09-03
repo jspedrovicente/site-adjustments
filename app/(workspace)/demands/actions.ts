@@ -15,7 +15,10 @@ const optional = (formData: FormData, name: string) => {
 export async function updateDemand(formData: FormData) {
   const id = optional(formData, "id");
   const title = optional(formData, "title");
+  const submittedItemIds = formData.getAll("item_id").filter((value): value is string => typeof value === "string");
+  const submittedNewDescriptions = formData.getAll("new_item_description").filter((value): value is string => typeof value === "string");
   if (!id || !title) throw new Error("O título da demanda é obrigatório.");
+  if (formData.get("intent") === "submit-draft" && !submittedItemIds.length && !submittedNewDescriptions.some((value) => value.trim())) throw new Error("Adicione pelo menos um item antes de enviar o rascunho para análise.");
 
   const supabase = await createClient();
   const { error: demandError } = await supabase.from("adjustment_demands").update({
@@ -23,7 +26,7 @@ export async function updateDemand(formData: FormData) {
     heading_raw: optional(formData, "description"),
     category_id: optional(formData, "category_id"),
     priority: optional(formData, "priority"),
-    status: optional(formData, "status"),
+    status: formData.get("intent") === "submit-draft" ? (optional(formData, "status")?.includes("Pós-go-live") ? "Pendente de análise · Pós-go-live" : "Pendente de análise") : optional(formData, "status"),
     developer: optional(formData, "developer"),
     deadline: optional(formData, "deadline"),
     validation_result: optional(formData, "validation_result"),
@@ -32,8 +35,8 @@ export async function updateDemand(formData: FormData) {
   }).eq("id", id);
   if (demandError) throw new Error(`Não foi possível atualizar a demanda: ${demandError.message}`);
 
-  const itemIds = formData.getAll("item_id").filter((value): value is string => typeof value === "string");
-  const { data: currentItems, error: readError } = await supabase.from("adjustment_items").select("id,semantics").in("id", itemIds).eq("demand_id", id);
+  const itemIds = submittedItemIds;
+  const { data: currentItems, error: readError } = itemIds.length ? await supabase.from("adjustment_items").select("id,semantics").in("id", itemIds).eq("demand_id", id) : { data: [], error: null };
   if (readError) throw new Error(`Não foi possível ler o estado dos itens: ${readError.message}`);
   const currentById = new Map((currentItems ?? []).map((item) => [item.id, item.semantics]));
   for (const itemId of itemIds) {
@@ -51,6 +54,15 @@ export async function updateDemand(formData: FormData) {
   }).eq("id", itemId).eq("demand_id", id)));
   const itemError = results.find((result) => result.error)?.error;
   if (itemError) throw new Error(`A demanda foi atualizada, mas um item falhou: ${itemError.message}`);
+  const newDescriptions = submittedNewDescriptions;
+  const newTypes = formData.getAll("new_item_type").filter((value): value is string => typeof value === "string");
+  const newAssignees = formData.getAll("new_item_assignee").filter((value): value is string => typeof value === "string");
+  const newItems = newDescriptions.map((description, index) => ({ description: description.trim(), type: newTypes[index] || "change", assignee: newAssignees[index]?.trim() || null })).filter((item) => item.description);
+  if (newItems.length) {
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("adjustment_items").insert(newItems.map((item, index) => ({ id: crypto.randomUUID(), demand_id: id, item_type: item.type, description: item.description, semantics: item.assignee ? [{ semantic: "assignee", value: item.assignee }] : [], sort_order: itemIds.length + index + 1, source_key: `manual-${id}-${itemIds.length + index + 1}-${crypto.randomUUID()}`, created_at: now, updated_at: now })));
+    if (error) throw new Error(`Não foi possível adicionar os novos itens: ${error.message}`);
+  }
   const { data: importantAnnotations, error: annotationReadError } = await supabase.from("adjustment_annotations").select("id,item_id").in("item_id", itemIds).eq("semantic", "important");
   if (annotationReadError) throw new Error(`Não foi possível ler as marcações importantes: ${annotationReadError.message}`);
   for (const itemId of itemIds) {
@@ -67,11 +79,12 @@ export async function updateDemand(formData: FormData) {
   revalidatePath("/future-versions");
   revalidatePath("/post-go-live");
   revalidatePath(`/demands/${id}`);
-  redirect(`/demands/${id}`);
+  redirect(formData.get("intent") === "submit-draft" ? "/approvals?created=true" : `/demands/${id}`);
 }
 
 export async function createDemand(formData: FormData) {
   const title = optional(formData, "title");
+  const draft = formData.get("intent") === "draft";
   const postGoLive = formData.get("post_go_live") === "on";
   if (!title) throw new Error("O título da demanda é obrigatório.");
   const descriptions = formData.getAll("item_description").filter((value): value is string => typeof value === "string");
@@ -79,20 +92,20 @@ export async function createDemand(formData: FormData) {
   const assignees = formData.getAll("item_assignee").filter((value): value is string => typeof value === "string");
   const keys = formData.getAll("item_key").filter((value): value is string => typeof value === "string");
   const validItems = descriptions.map((description, index) => { const key = keys[index]; return { id: crypto.randomUUID(), key, description: description.trim(), type: types[index] || "change", assignee: assignees[index]?.trim() || null, completed: formData.get(`item_completed_${key}`) === "on", important: formData.get(`item_important_${key}`) === "on" }; }).filter((item) => item.description);
-  if (!validItems.length) throw new Error("Adicione pelo menos um item à demanda.");
+  if (!draft && !validItems.length) throw new Error("Adicione pelo menos um item à demanda.");
   const supabase = await createClient();
   const { data: latest } = await supabase.from("adjustment_demands").select("source_order").order("source_order", { ascending: false }).limit(1).maybeSingle();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const { error: demandError } = await supabase.from("adjustment_demands").insert({ id, title, heading_raw: optional(formData, "description"), category_id: optional(formData, "category_id"), priority: optional(formData, "priority"), status: postGoLive ? "Pendente de análise · Pós-go-live" : "Pendente de análise", developer: optional(formData, "developer"), deadline: optional(formData, "deadline"), source_key: `manual-${id}`, source_order: (latest?.source_order ?? 0) + 1, created_at: now, updated_at: now });
+  const { error: demandError } = await supabase.from("adjustment_demands").insert({ id, title, heading_raw: optional(formData, "description"), category_id: optional(formData, "category_id"), priority: optional(formData, "priority"), status: draft ? (postGoLive ? "Rascunho · Pós-go-live" : "Rascunho") : postGoLive ? "Pendente de análise · Pós-go-live" : "Pendente de análise", developer: optional(formData, "developer"), deadline: optional(formData, "deadline"), source_key: `manual-${id}`, source_order: (latest?.source_order ?? 0) + 1, created_at: now, updated_at: now });
   if (demandError) throw new Error(`Não foi possível criar a demanda: ${demandError.message}`);
-  const { error: itemsError } = await supabase.from("adjustment_items").insert(validItems.map((item, index) => ({ id: item.id, demand_id: id, item_type: item.type, description: item.description, semantics: [...(item.completed ? ["done" as const] : []), ...(item.assignee ? [{ semantic: "assignee", value: item.assignee }] : [])], sort_order: index + 1, source_key: `manual-${id}-${index + 1}`, created_at: now, updated_at: now })));
+  const { error: itemsError } = validItems.length ? await supabase.from("adjustment_items").insert(validItems.map((item, index) => ({ id: item.id, demand_id: id, item_type: item.type, description: item.description, semantics: [...(item.completed ? ["done" as const] : []), ...(item.assignee ? [{ semantic: "assignee", value: item.assignee }] : [])], sort_order: index + 1, source_key: `manual-${id}-${index + 1}`, created_at: now, updated_at: now }))) : { error: null };
   if (itemsError) { await supabase.from("adjustment_demands").delete().eq("id", id); throw new Error(`Não foi possível criar os itens: ${itemsError.message}`); }
   const importantItems = validItems.filter((item) => item.important);
   if (importantItems.length) { const { error } = await supabase.from("adjustment_annotations").insert(importantItems.map((item) => ({ item_id: item.id, semantic: "important", span_index: 0, text: null, highlight: null }))); if (error) throw new Error(`A demanda foi criada, mas as marcações importantes falharam: ${error.message}`); }
   for (const item of validItems) { const files = formData.getAll(`item_image_${item.key}_file`); const roles = formData.getAll(`item_image_${item.key}_role`); for (let index = 0; index < files.length; index++) { const file = files[index], role = roles[index]; if (file instanceof File && file.size > 0) await uploadItemImage(supabase, id, item.id, file, typeof role === "string" ? role : "other"); } }
-  revalidatePath("/approvals");
-  redirect("/approvals?created=true");
+  revalidatePath("/approvals"); revalidatePath("/demands");
+  redirect(draft ? "/demands?draft-saved=true" : "/approvals?created=true");
 }
 
 function withItemMetadata(value: Json | undefined, resolution: string, assignee: string | null): Json {

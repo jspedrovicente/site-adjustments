@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, CircleDot, FilePlus2, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getDemands } from "@/lib/data/demands";
-import { type Demand, type DemandItem, type ItemResolution } from "@/lib/data/model";
+import { isDemandDraft, type Demand, type DemandItem, type ItemResolution } from "@/lib/data/model";
 
 export const metadata = { title: "Daily da equipe" };
 const DAY = 86_400_000;
@@ -29,8 +29,8 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   const dailyButtons = Array.from({ length: 7 }, (_, index) => new Date(defaultMeeting.getTime() - index * DAY));
 
   const demands = await getDemands();
-  const newDemands = demands.filter((demand) => isDuring(demand.createdAt, activityDate, activityEnd));
-  const changedDemands = demands.map((demand) => ({ demand, items: demand.items.filter((item) => isDuring(item.updatedAt, activityDate, activityEnd) && !isDuring(item.createdAt, activityDate, activityEnd)) })).filter(({ items }) => items.length);
+  const newDemands = demands.filter((demand) => !isDemandDraft(demand) && isDuring(demand.createdAt, activityDate, activityEnd));
+  const changedDemands = demands.filter((demand) => !isDemandDraft(demand)).map((demand) => ({ demand, items: demand.items.filter((item) => isDuring(item.updatedAt, activityDate, activityEnd) && !isDuring(item.createdAt, activityDate, activityEnd)) })).filter(({ items }) => items.length);
   const workByDeveloper = new Map<string, { demand: Demand; items: DemandItem[] }[]>();
   for (const { demand, items } of changedDemands) {
     const names = [...new Set(items.map((item) => item.assignee ?? demand.developer ?? "Sem responsável"))];

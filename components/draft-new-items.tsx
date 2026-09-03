@@ -1,0 +1,12 @@
+"use client";
+
+import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+
+const developers = ["Vitor Moraes", "Lauro", "José", "Marco", "Elvis", "Wanderson"];
+const types = [{ value: "change", label: "Ajuste" }, { value: "question", label: "Dúvida" }, { value: "reference", label: "Referência" }, { value: "figma", label: "Figma" }, { value: "other", label: "Outro" }];
+
+export function DraftNewItems() {
+  const [items, setItems] = useState<string[]>([]);
+  return <section><div className="mb-3 flex items-center justify-between"><div><h2 className="text-lg font-semibold">Novos itens</h2><p className="mt-1 text-xs text-slate-400">Continue completando o rascunho antes de enviá-lo para análise.</p></div><button type="button" onClick={() => setItems((current) => [...current, crypto.randomUUID()])} className="flex items-center gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm font-semibold text-cyan-100"><Plus className="size-4"/>Adicionar item</button></div><div className="space-y-4">{items.map((key, index) => <div key={key} className="panel rounded-lg p-5 sm:p-7"><div className="mb-4 flex items-center justify-between"><p className="font-mono text-xs font-semibold uppercase text-cyan-300">Novo item {index + 1}</p><button type="button" onClick={() => setItems((current) => current.filter((item) => item !== key))} aria-label="Remover item" className="rounded-lg p-2 text-rose-300 hover:bg-rose-400/10"><Trash2 className="size-4"/></button></div><div className="grid gap-5 sm:grid-cols-2"><label><span className="text-sm font-medium">Tipo</span><select name="new_item_type" className="focus-ring mt-1.5 w-full rounded-md border bg-white px-3 py-2.5 text-sm">{types.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label><label><span className="text-sm font-medium">Atribuir a</span><select name="new_item_assignee" className="focus-ring mt-1.5 w-full rounded-md border bg-white px-3 py-2.5 text-sm"><option value="">Não definido</option>{developers.map((developer) => <option key={developer}>{developer}</option>)}</select></label><label className="sm:col-span-2"><span className="text-sm font-medium">Descrição</span><textarea name="new_item_description" required className="focus-ring mt-1.5 min-h-28 w-full resize-y rounded-md border bg-white px-3 py-2.5 text-sm"/></label></div></div>)}</div></section>;
+}

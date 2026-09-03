@@ -52,7 +52,7 @@ export function NewDemandForm({ categories, action }: { categories: Category[]; 
         </div>
       </div>
 
-      <p className="mt-5 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-sm text-amber-100">A demanda será criada como <strong>Pendente de análise</strong> e só aparecerá no backlog e no dashboard depois de aprovada.</p>
+      <p className="mt-5 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-sm text-amber-100">Você pode salvar como <strong>Rascunho</strong> para continuar depois ou enviar a demanda pronta para análise.</p>
     </section>
 
     <section>
@@ -84,7 +84,7 @@ export function NewDemandForm({ categories, action }: { categories: Category[]; 
       <div className="flex items-start gap-3"><Star className="mt-0.5 size-5 shrink-0 text-amber-300"/><div><p className="text-sm font-bold uppercase tracking-wide text-amber-100">Itens importantes são prioridade máxima</p><p className="mt-1 text-sm leading-6 text-slate-300">Um item marcado como <strong>Importante</strong> deve receber atenção máxima, mesmo quando estiver dentro de uma demanda de prioridade Média, Baixa ou ainda não definida. Use essa marcação somente para itens realmente críticos.</p></div></div>
     </aside>
 
-    <div className="flex justify-end border-t border-slate-700/60 py-4"><SubmitButton/></div>
+    <div className="flex flex-wrap justify-end gap-3 border-t border-slate-700/60 py-4"><button type="submit" name="intent" value="draft" formNoValidate className="focus-ring rounded-lg border border-violet-400/30 bg-violet-400/10 px-5 py-2.5 text-sm font-semibold text-violet-100 hover:bg-violet-400/15">Salvar como rascunho</button><SubmitButton/></div>
   </form>;
 }
 
