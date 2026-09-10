@@ -5,10 +5,14 @@ import { getDemands } from "@/lib/data/demands";
 import { isDemandDraft, type Demand, type DemandItem, type ItemResolution } from "@/lib/data/model";
 
 export const metadata = { title: "Daily da equipe" };
-const DAY = 86_400_000;
-const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
-const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-const shortDate = (date: Date) => date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+const APP_TIME_ZONE = "America/Sao_Paulo";
+const SAO_PAULO_OFFSET = "-03:00";
+const dateKeyFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" });
+const dateKey = (date: Date) => dateKeyFormatter.format(date);
+const dateFromKey = (value: string) => new Date(`${value}T12:00:00Z`);
+const addDays = (date: Date, amount: number) => new Date(date.getTime() + amount * 86_400_000);
+const dayBoundary = (date: Date) => new Date(`${dateKey(date)}T00:00:00${SAO_PAULO_OFFSET}`);
+const shortDate = (date: Date) => date.toLocaleDateString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit" });
 const isDuring = (value: string | undefined, from: Date, to: Date) => !!value && new Date(value) >= from && new Date(value) < to;
 const resolutionMeta: Record<ItemResolution, { label: string; classes: string }> = {
   pending: { label: "Pendentes", classes: "border-cyan-400/20 bg-cyan-400/10 text-cyan-200" },
@@ -20,17 +24,20 @@ const resolutionMeta: Record<ItemResolution, { label: string; classes: string }>
 
 export default async function DailyPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const { date } = await searchParams;
-  const today = startOfDay(new Date());
-  const defaultMeeting = new Date(today.getTime() + DAY);
-  const requested = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? startOfDay(new Date(`${date}T12:00:00`)) : defaultMeeting;
+  const defaultMeeting = dateFromKey(dateKey(new Date()));
+  const requested = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? dateFromKey(date) : defaultMeeting;
   const meetingDate = requested.getTime() > defaultMeeting.getTime() ? defaultMeeting : requested;
-  const activityDate = new Date(meetingDate.getTime() - DAY);
-  const activityEnd = new Date(activityDate.getTime() + DAY);
-  const dailyButtons = Array.from({ length: 7 }, (_, index) => new Date(defaultMeeting.getTime() - index * DAY));
+  const activityDay = addDays(meetingDate, -1);
+  const activityDate = dayBoundary(activityDay);
+  const activityEnd = dayBoundary(meetingDate);
+  const dailyButtons = Array.from({ length: 7 }, (_, index) => addDays(defaultMeeting, -index));
 
   const demands = await getDemands();
   const newDemands = demands.filter((demand) => !isDemandDraft(demand) && isDuring(demand.createdAt, activityDate, activityEnd));
-  const changedDemands = demands.filter((demand) => !isDemandDraft(demand)).map((demand) => ({ demand, items: demand.items.filter((item) => isDuring(item.updatedAt, activityDate, activityEnd) && !isDuring(item.createdAt, activityDate, activityEnd)) })).filter(({ items }) => items.length);
+  const changedDemands = demands.filter((demand) => !isDemandDraft(demand)).map((demand) => ({ demand, items: demand.items.filter((item) => isDuring(item.updatedAt, activityDate, activityEnd)) })).filter(({ items }) => items.length);
+  const changedDemandIds = new Set(changedDemands.map(({ demand }) => demand.id));
+  const newDemandIds = new Set(newDemands.map((demand) => demand.id));
+  const demandOnlyUpdates = demands.filter((demand) => !isDemandDraft(demand) && !changedDemandIds.has(demand.id) && !newDemandIds.has(demand.id) && isDuring(demand.updatedAt, activityDate, activityEnd));
   const workByDeveloper = new Map<string, { demand: Demand; items: DemandItem[] }[]>();
   for (const { demand, items } of changedDemands) {
     const names = [...new Set(items.map((item) => item.assignee ?? demand.developer ?? "Sem responsável"))];
@@ -45,7 +52,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   const attentionDemands = changedDemands.map(({ demand, items }) => ({ demand, items: items.filter((item) => item.resolution !== "done" && item.resolution !== "pending") })).filter(({ items }) => items.length);
 
   return <>
-    <PageHeader eyebrow={`Daily ${shortDate(meetingDate)}`} title="Daily da equipe" description={`Resumo do trabalho realizado em ${activityDate.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}.`} />
+    <PageHeader eyebrow={`Daily ${shortDate(meetingDate)}`} title="Daily da equipe" description={`Resumo do trabalho realizado em ${activityDay.toLocaleDateString("pt-BR", { timeZone: "UTC", weekday: "long", day: "2-digit", month: "long" })}.`} />
     <main className="space-y-8 p-5 sm:p-8 lg:p-10">
       <nav aria-label="Selecionar daily" className="panel overflow-x-auto rounded-xl p-2"><div className="flex min-w-max gap-2">{dailyButtons.map((buttonDate) => <Link key={dateKey(buttonDate)} href={`/daily?date=${dateKey(buttonDate)}`} className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${dateKey(buttonDate) === dateKey(meetingDate) ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950/30" : "bg-slate-950/25 text-slate-300 hover:bg-white/5 hover:text-white"}`}>Daily {shortDate(buttonDate)}</Link>)}</div></nav>
 
@@ -60,6 +67,8 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
       </section>
 
       {newDemands.length > 0 && <Summary title="Novas demandas criadas por João" icon={FilePlus2} count={newDemands.length}>{newDemands.map((demand) => <DemandLink key={demand.id} demand={demand} />)}</Summary>}
+
+      {demandOnlyUpdates.length > 0 && <Summary title="Demandas atualizadas" icon={CircleDot} count={demandOnlyUpdates.length}>{demandOnlyUpdates.map((demand) => <DemandLink key={demand.id} demand={demand} />)}</Summary>}
 
       <section className="space-y-7"><div><p className="font-mono text-xs font-semibold uppercase tracking-[.15em] text-cyan-300">Pauta por pessoa</p><h2 className="mt-1 text-xl font-semibold text-white">Atividades da equipe</h2><p className="mt-1 text-sm text-slate-400">Resumo das entregas, alterações e pontos de atenção desde a última daily.</p></div>{workByDeveloper.size ? [...workByDeveloper.entries()].sort(([a], [b]) => a.localeCompare(b, "pt-BR")).map(([name, updates]) => <DeveloperUpdates key={name} name={name} updates={updates} />) : <Empty />}</section>
     </main>
