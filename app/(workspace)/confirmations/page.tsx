@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, Clock3, MessageSquareText, Terminal, UserRound } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Clock3, MessageSquarePlus, MessageSquareText, Terminal, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getDemands } from "@/lib/data/demands";
 import { isDemandAwaitingConfirmation, type DemandItem } from "@/lib/data/model";
-import { finalizeDemand } from "./actions";
+import { finalizeDemand, requestItemFeedback, returnDemandForFeedback } from "./actions";
 import { MarkAllProduction } from "./mark-all-production";
 import { ProductionToggle } from "./production-toggle";
 
@@ -30,6 +30,12 @@ export default async function ConfirmationsPage({
           ? "Ainda existem itens pendentes nesta demanda."
           : error === "production-update-failed"
             ? "Não foi possível atualizar o status de produção. Verifique as permissões RLS."
+            : error === "feedback-invalid"
+              ? "Selecione um item e descreva o ajuste solicitado."
+              : error === "feedback-failed"
+                ? "Não foi possível registrar o feedback. Verifique se as migrações e políticas do banco foram aplicadas."
+                : error === "no-feedback"
+                  ? "Adicione feedback a pelo menos um item antes de devolver a demanda."
             : error
               ? "Não foi possível finalizar. Verifique as permissões RLS."
               : null;
@@ -64,6 +70,16 @@ export default async function ConfirmationsPage({
         {params.finalized && (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">
             Demanda finalizada e movida para Concluídos.
+          </div>
+        )}
+        {params["feedback-requested"] && (
+          <div className="rounded-lg border border-amber-300/30 bg-amber-400/10 p-4 text-sm font-medium text-amber-100">
+            Feedback enviado. A demanda voltou para a equipe de desenvolvimento.
+          </div>
+        )}
+        {params["feedback-added"] && (
+          <div className="rounded-lg border border-violet-300/30 bg-violet-400/10 p-4 text-sm font-medium text-violet-100">
+            Feedback adicionado. Você pode revisar outros itens antes de devolver a demanda.
           </div>
         )}
 
@@ -166,10 +182,40 @@ function DemandGroup({
             </div>
           </div>
           <ExceptionSummary items={demand.items} />
+          <ConfirmationHistory items={demand.items} demandId={demand.id} />
+          <FeedbackRequest items={demand.items} demandId={demand.id} />
         </article>
       ))}
     </section>
   );
+}
+
+function FeedbackRequest({ items, demandId }: { items: DemandItem[]; demandId: string }) {
+  const draftCount = items.flatMap((item) => item.feedback ?? []).filter((feedback) => feedback.status === "draft").length;
+  return <><details className="group mt-5 overflow-hidden rounded-xl border border-violet-400/20 bg-violet-400/[.04]">
+    <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3.5 text-sm font-semibold text-violet-200 marker:hidden"><MessageSquarePlus className="size-4"/>Solicitar ajuste em um item <span className="ml-auto text-slate-500 transition group-open:rotate-180">⌄</span></summary>
+    <div className="divide-y divide-violet-400/15 border-t border-violet-400/15">
+      {items.map((item, index) => <form key={item.id} action={requestItemFeedback} className="grid gap-3 p-4 lg:grid-cols-[minmax(220px,0.8fr)_minmax(280px,1.2fr)_auto] lg:items-start">
+        <input type="hidden" name="demand_id" value={demandId}/><input type="hidden" name="item_id" value={item.id}/><input type="hidden" name="return_to" value="confirmations"/>
+        <div><p className="font-mono text-xs font-semibold uppercase tracking-wide text-violet-300">Item {item.number ?? index + 1}</p><p className="mt-1 line-clamp-3 text-sm leading-6 text-slate-300">{item.description}</p></div>
+        <textarea name="content" required minLength={3} placeholder="Descreva o que precisa ser ajustado ou acrescente novas informações..." className="min-h-28 rounded-lg border border-slate-600 bg-slate-900 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500"/>
+        <button className="focus-ring flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-500"><MessageSquarePlus className="size-4"/>Enviar feedback</button>
+      </form>)}
+    </div>
+  </details><form action={returnDemandForFeedback} className="mt-3 flex flex-col gap-3 rounded-xl border border-amber-400/25 bg-amber-400/[.06] p-4 sm:flex-row sm:items-center sm:justify-between"><input type="hidden" name="demand_id" value={demandId}/><p className="text-sm text-amber-100">{draftCount > 0 ? <><strong>{draftCount}</strong> {draftCount === 1 ? "feedback preparado" : "feedbacks preparados"}. A demanda continuará nesta página até você enviá-la.</> : "Adicione feedback aos itens necessários. Quando terminar a revisão, envie a demanda para ajustes."}</p><button disabled={!draftCount} className="focus-ring rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-40">Enviar demanda para ajustes</button></form></>;
+}
+
+function ConfirmationHistory({ items, demandId }: { items: DemandItem[]; demandId: string }) {
+  const reviewedItems = items.filter((item) => (item.feedback ?? []).some((feedback) => feedback.status === "resolved"));
+  if (!reviewedItems.length) return null;
+  return <section className="mt-5 overflow-hidden rounded-xl border border-emerald-400/25 bg-emerald-400/[.04]"><div className="flex items-center justify-between border-b border-emerald-400/15 px-4 py-3"><h3 className="flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-wide text-emerald-200"><MessageSquareText className="size-4"/>Histórico desta validação</h3><span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">{reviewedItems.length} {reviewedItems.length === 1 ? "item revisado" : "itens revisados"}</span></div><div className="divide-y divide-emerald-400/15">{reviewedItems.map((item) => <div key={item.id} className="p-4"><p className="mb-2 font-mono text-[11px] font-semibold uppercase tracking-wide text-slate-400">Item {item.number ?? items.indexOf(item) + 1}</p><FeedbackPreview item={item} demandId={demandId}/></div>)}</div></section>;
+}
+
+function FeedbackPreview({ item, demandId }: { item: DemandItem; demandId: string }) {
+  const history = (item.feedback ?? []).filter((feedback) => feedback.status === "resolved");
+  const latest = history[history.length - 1];
+  if (!latest) return null;
+  return <div className="rounded-lg border border-emerald-400/20 bg-slate-950/25 p-3"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-200">Feedback respondido</span><span className="text-[11px] text-slate-400">{history.length} {history.length === 1 ? "rodada de revisão" : "rodadas de revisão"}</span></div><div className="mt-2 space-y-2 text-xs leading-5"><p className="text-slate-300"><strong className="text-violet-200">Validador: </strong>{latest.content}</p><p className="text-slate-300"><strong className="text-emerald-200">Desenvolvimento: </strong>{latest.developerResponse || "Feedback marcado como atendido."}</p></div><Link href={`/demands/${demandId}`} className="mt-2 inline-flex text-xs font-semibold text-cyan-300 hover:text-cyan-200">Ver conversa completa →</Link></div>;
 }
 
 const exceptionLabels = {

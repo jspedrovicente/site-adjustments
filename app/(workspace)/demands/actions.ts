@@ -131,6 +131,30 @@ export async function updateItemResolution(formData: FormData) {
   redirect(`/demands/${demandId}`);
 }
 
+export async function resolveItemFeedback(formData: FormData) {
+  const demandId = optional(formData, "demand_id"), itemId = optional(formData, "item_id"), feedbackId = optional(formData, "feedback_id");
+  const developerResponse = optional(formData, "feedback_response");
+  if (!demandId || !itemId || !feedbackId) throw new Error("Feedback inválido.");
+
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const { data: feedback, error: feedbackError } = await supabase.from("adjustment_item_feedback").update({ status: "resolved", developer_response: developerResponse, resolved_at: now, updated_at: now }).eq("id", feedbackId).eq("item_id", itemId).eq("demand_id", demandId).eq("status", "pending").select("id").maybeSingle();
+  if (feedbackError || !feedback) throw new Error("Não foi possível concluir o feedback.");
+  const { error: itemTouchError } = await supabase.from("adjustment_items").update({ updated_at: now }).eq("id", itemId).eq("demand_id", demandId);
+  if (itemTouchError) throw new Error("O feedback foi respondido, mas não foi possível atualizar a atividade do item.");
+
+  const [{ count: pendingFeedback, error: pendingError }, { data: demandItems, error: itemsError }] = await Promise.all([
+    supabase.from("adjustment_item_feedback").select("id", { count: "exact", head: true }).eq("demand_id", demandId).eq("status", "pending"),
+    supabase.from("adjustment_items").select("semantics").eq("demand_id", demandId),
+  ]);
+  if (pendingError) throw new Error("Não foi possível verificar os feedbacks pendentes.");
+  const allDone = !itemsError && !!demandItems?.length && demandItems.every((item) => Array.isArray(item.semantics) && item.semantics.some((value) => value === "done" || (typeof value === "object" && value !== null && !Array.isArray(value) && (value.semantic === "done" || value.semantic === "completion"))));
+  if (allDone && !pendingFeedback) await supabase.from("adjustment_demands").update({ status: "Ajustes concluídos", updated_at: now }).eq("id", demandId);
+
+  revalidatePath(`/demands/${demandId}`); revalidatePath("/demands"); revalidatePath("/dashboard"); revalidatePath("/daily"); revalidatePath("/confirmations");
+  redirect(`/demands/${demandId}?feedback-resolved=true`);
+}
+
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 async function uploadItemImage(supabase: SupabaseClient, demandId: string, itemId: string, file: File, role: string) {
   if (!file.type.startsWith("image/")) throw new Error("Somente arquivos de imagem são permitidos.");

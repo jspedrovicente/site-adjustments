@@ -1,10 +1,10 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { categoryFromRow, demandFromRow, itemFromRow, type AttachmentRole, type Demand } from "./model";
+import { categoryFromRow, demandFromRow, itemFromRow, type AttachmentRole, type Demand, type ItemFeedback } from "./model";
 
 export const getDemands = cache(async (): Promise<Demand[]> => {
   const supabase = await createClient();
-  const [demandResult, categoryResult, itemResult, attachmentResult, joinResult, linkResult, annotationResult] = await Promise.all([
+  const [demandResult, categoryResult, itemResult, attachmentResult, joinResult, linkResult, annotationResult, feedbackResult] = await Promise.all([
     supabase.from("adjustment_demands").select("*").order("source_order"),
     supabase.from("adjustment_categories").select("*").order("name"),
     supabase.from("adjustment_items").select("*").order("sort_order"),
@@ -12,12 +12,13 @@ export const getDemands = cache(async (): Promise<Demand[]> => {
     supabase.from("adjustment_item_attachments").select("*"),
     supabase.from("adjustment_links").select("*"),
     supabase.from("adjustment_annotations").select("*").order("span_index"),
+    supabase.from("adjustment_item_feedback").select("*").order("created_at", { ascending: true }),
   ]);
-  const failed = [demandResult, categoryResult, itemResult, attachmentResult, joinResult, linkResult, annotationResult].find((result) => result.error);
+  const failed = [demandResult, categoryResult, itemResult, attachmentResult, joinResult, linkResult, annotationResult, feedbackResult].find((result) => result.error);
   if (failed?.error) throw new Error(`Não foi possível carregar as demandas: ${failed.error.message}`);
   const categories = (categoryResult.data ?? []).map(categoryFromRow);
   const demands = (demandResult.data ?? []).map(demandFromRow);
-  const items = (itemResult.data ?? []).map((row) => ({ ...itemFromRow(row), createdAt: row.created_at, updatedAt: row.updated_at }));
+  const items = (itemResult.data ?? []).map((row) => ({ ...itemFromRow(row), createdAt: row.created_at, updatedAt: row.updated_at, feedback: [] as ItemFeedback[] }));
   const itemMap = new Map(items.map((item) => [item.id, item]));
   const attachments = new Map((attachmentResult.data ?? []).map((row) => [row.id, row]));
   for (const relation of joinResult.data ?? []) {
@@ -27,6 +28,7 @@ export const getDemands = cache(async (): Promise<Demand[]> => {
   }
   for (const row of linkResult.data ?? []) { if (!row.item_id) continue; itemMap.get(row.item_id)?.links.push({ id: row.id, url: row.url, label: row.link_type || undefined }); }
   for (const row of annotationResult.data ?? []) { itemMap.get(row.item_id)?.annotations.push({ id: row.id, semantic: row.semantic, text: row.text ?? undefined }); }
+  for (const row of feedbackResult.data ?? []) { itemMap.get(row.item_id)?.feedback?.push({ id: row.id, content: row.content, status: row.status === "resolved" ? "resolved" : row.status === "pending" ? "pending" : "draft", developerResponse: row.developer_response ?? undefined, createdAt: row.created_at, resolvedAt: row.resolved_at ?? undefined }); }
   for (const demand of demands) { demand.category = categories.find((category) => category.id === demand.categoryId); demand.items = items.filter((item) => item.demandId === demand.id); }
   return demands;
 });
