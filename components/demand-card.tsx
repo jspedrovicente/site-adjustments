@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, CircleHelp, ImageIcon, Star, Tag, UserRound } from "lucide-react";
+import { CalendarDays, CheckCircle2, CircleHelp, ImageIcon, MessageSquareWarning, Star, Tag, UserRound } from "lucide-react";
 import { isDemandDone, isItemDone, type Demand } from "@/lib/data/model";
 import { PriorityBadge, StatusBadge } from "./badges";
 
@@ -14,10 +14,11 @@ export function DemandCard({ demand }: { demand: Demand }) {
   const pendingItems = labeledItems.filter(({ item }) => !isItemDone(item));
   const untaggedItems = pendingItems.filter(({ item }) => item.annotations.length === 0);
   const completed = isDemandDone(demand);
+  const feedbackItems = demand.items.filter((item) => (item.feedback ?? []).some((feedback) => feedback.status === "pending"));
 
   return <Link href={`/demands/${demand.id}`} className="panel focus-ring block rounded-lg p-5 transition hover:border-slate-300 hover:shadow-md">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div><div className="mb-2 flex flex-wrap items-center gap-2"><span className="text-xs font-medium text-blue-700">{demand.category?.name ?? "Sem categoria"}</span>{demand.sourceId && <span className="text-xs text-slate-400">#{demand.sourceId}</span>}{completed && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white"><CheckCircle2 className="size-3.5"/>Demanda concluída</span>}</div><h2 className="font-semibold text-slate-950">{demand.title}</h2></div>
+      <div><div className="mb-2 flex flex-wrap items-center gap-2"><span className="text-xs font-medium text-blue-700">{demand.category?.name ?? "Sem categoria"}</span>{demand.sourceId && <span className="text-xs text-slate-400">#{demand.sourceId}</span>}{completed && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white"><CheckCircle2 className="size-3.5"/>Demanda concluída</span>}{feedbackItems.length > 0 && <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800"><MessageSquareWarning className="size-3.5"/>Feedback pendente · {feedbackItems.length} {feedbackItems.length === 1 ? "item" : "itens"}</span>}</div><h2 className="font-semibold text-slate-950">{demand.title}</h2></div>
       <div className="flex shrink-0 gap-2"><PriorityBadge value={demand.priority}/><StatusBadge value={demand.status}/></div>
     </div>
 
@@ -35,7 +36,7 @@ export function DemandCard({ demand }: { demand: Demand }) {
       {untaggedItems.length > 0 && <span className="text-xs font-medium text-slate-500">Itens: <strong className="text-slate-700">{untaggedItems.slice(0, 8).map(({ label }) => label).join(", ")}</strong>{untaggedItems.length > 8 && ` +${untaggedItems.length - 8}`}</span>}
     </div>
 
-    {pendingItems.length > 0 && <section className="mt-4 border-t pt-4"><div className="mb-2 flex items-center justify-between"><h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Itens pendentes</h3><span className="text-xs font-semibold text-slate-500">{pendingItems.length}</span></div><div className="space-y-1.5">{pendingItems.slice(0, 5).map(({ item, label }) => <div key={item.id} className="grid gap-1 rounded-md border bg-slate-50 px-3 py-2 text-xs sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><p className="min-w-0 truncate text-slate-700"><strong className="mr-1.5 text-slate-950">Item {label}</strong>{item.description}</p><span className={item.assignee ? "inline-flex items-center gap-1 font-semibold text-violet-700" : "text-slate-400"}><UserRound className="size-3.5"/>{item.assignee ?? "Sem responsável"}</span></div>)}{pendingItems.length > 5 && <p className="px-1 pt-1 text-xs font-medium text-slate-500">+ {pendingItems.length - 5} itens pendentes</p>}</div></section>}
+    {pendingItems.length > 0 && <section className="mt-4 border-t pt-4"><div className="mb-2 flex items-center justify-between"><h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Itens pendentes</h3><span className="text-xs font-semibold text-slate-500">{pendingItems.length}</span></div><div className="space-y-1.5">{pendingItems.slice(0, 5).map(({ item, label }) => { const hasFeedback = (item.feedback ?? []).some((feedback) => feedback.status === "pending"); return <div key={item.id} className="grid gap-1 rounded-md border bg-slate-50 px-3 py-2 text-xs sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><p className="min-w-0 truncate text-slate-700"><strong className="mr-1.5 text-slate-950">Item {label}</strong>{hasFeedback && <span className="mr-1.5 rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800">Feedback pendente</span>}{item.description}</p><span className={item.assignee ? "inline-flex items-center gap-1 font-semibold text-violet-700" : "text-slate-400"}><UserRound className="size-3.5"/>{item.assignee ?? "Sem responsável"}</span></div>; })}{pendingItems.length > 5 && <p className="px-1 pt-1 text-xs font-medium text-slate-500">+ {pendingItems.length - 5} itens pendentes</p>}</div></section>}
   </Link>;
 }
 
