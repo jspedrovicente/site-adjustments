@@ -15,7 +15,7 @@ export default async function DemandDetailPage({ params, searchParams }: { param
   const demand = await signDemandImages(found);
   const awaitingConfirmation = isDemandAwaitingConfirmation(demand);
   const draftFeedbackCount = demand.items.flatMap((item) => item.feedback ?? []).filter((feedback) => feedback.status === "draft").length;
-  const feedbackError = query.error === "feedback-invalid" ? "Descreva o ajuste com pelo menos três caracteres." : query.error === "feedback-failed" ? "Não foi possível salvar o feedback. Verifique se as migrações do banco foram aplicadas." : query.error === "no-feedback" ? "Adicione feedback a pelo menos um item antes de devolver a demanda." : null;
+  const feedbackError = query.error === "feedback-content-invalid" ? "Descreva o ajuste com pelo menos três caracteres." : query.error === "feedback-unavailable" ? "Não é possível adicionar feedback a uma demanda finalizada." : query.error === "feedback-invalid" ? "Não foi possível identificar a demanda ou o item selecionado." : query.error === "feedback-failed" ? "Não foi possível salvar o feedback. Verifique se as migrações do banco foram aplicadas." : query.error === "no-feedback" ? "Adicione feedback a pelo menos um item antes de devolver a demanda." : null;
 
   return <>
     <header className="relative overflow-hidden border-b border-white/10 bg-slate-950/55 px-5 py-6 text-slate-100 backdrop-blur-md before:absolute before:-right-20 before:-top-32 before:size-72 before:rounded-full before:bg-cyan-500/10 before:blur-3xl sm:px-8 lg:px-10">

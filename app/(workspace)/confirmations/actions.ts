@@ -12,12 +12,14 @@ export async function requestItemFeedback(formData: FormData) {
   const content = typeof rawContent === "string" ? rawContent.trim() : "";
   const detailPath = typeof demandId === "string" ? `/demands/${demandId}` : "/confirmations";
   const returnTo = formData.get("return_to") === "detail" ? detailPath : "/confirmations";
-  if (typeof demandId !== "string" || typeof itemId !== "string" || content.length < 3) redirect(`${returnTo}?error=feedback-invalid`);
+  if (content.length < 3) redirect(`${returnTo}?error=feedback-content-invalid`);
+  if (typeof demandId !== "string" || typeof itemId !== "string") redirect(`${returnTo}?error=feedback-invalid`);
 
   const supabase = await createClient();
   const { data: demand } = await supabase.from("adjustment_demands").select("id,status").eq("id", demandId).maybeSingle();
   const { data: item } = await supabase.from("adjustment_items").select("id").eq("id", itemId).eq("demand_id", demandId).maybeSingle();
-  if (!demand || !item || demand.status === "Finalizada" || demand.status === "Ajustes solicitados") redirect(`${returnTo}?error=feedback-invalid`);
+  if (!demand || !item) redirect(`${returnTo}?error=feedback-invalid`);
+  if (demand.status === "Finalizada") redirect(`${returnTo}?error=feedback-unavailable`);
 
   const now = new Date().toISOString();
   const { error } = await supabase.from("adjustment_item_feedback").insert({ demand_id: demandId, item_id: itemId, content, status: "draft", created_at: now, updated_at: now });
