@@ -40,6 +40,7 @@ export default async function DemandsPage({
     responsible = one(params.responsible);
   const important = one(params.important) === "true",
     pending = one(params.pending) === "true",
+    unassigned = one(params.unassigned) === "true",
     completedOnly = one(params.completed) === "true";
   const values = (key: "priority" | "status") =>
     [...new Set(all.map((demand) => demand[key]).filter(Boolean))].sort();
@@ -78,6 +79,9 @@ export default async function DemandsPage({
       (!responsible ||
         demand.developer === responsible ||
         demand.items.some((item) => item.assignee === responsible)) &&
+      (!unassigned ||
+        (!demand.developer?.trim() &&
+          !demand.items.some((item) => item.assignee?.trim()))) &&
       (!important ||
         demand.items.some((item) =>
           item.annotations.some(
@@ -171,6 +175,15 @@ export default async function DemandsPage({
                 Com itens pendentes
               </label>
             )}
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="unassigned"
+                value="true"
+                defaultChecked={unassigned}
+              />
+              Sem nenhuma atribuição
+            </label>
           </div>
           <button className="focus-ring h-10 rounded-md bg-slate-900 px-4 text-sm font-semibold text-white">
             Aplicar filtros
