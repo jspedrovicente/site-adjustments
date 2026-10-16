@@ -111,9 +111,6 @@ export default async function DemandsPage({
       />
       <div className="p-5 sm:p-8 lg:p-10">
         <form className="panel mb-6 grid gap-3 rounded-lg p-4 md:grid-cols-2 xl:grid-cols-6">
-          {completedOnly && (
-            <input type="hidden" name="completed" value="true" />
-          )}
           <label className="relative md:col-span-2">
             <Search className="absolute left-3 top-3 size-4 text-slate-400" />
             <input
@@ -182,6 +179,15 @@ export default async function DemandsPage({
                 defaultChecked={unassigned}
               />
               Com item sem atribuição
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="completed"
+                value="true"
+                defaultChecked={completedOnly}
+              />
+              Somente demandas concluídas
             </label>
           </div>
           <button className="focus-ring h-10 rounded-md bg-slate-900 px-4 text-sm font-semibold text-white">
