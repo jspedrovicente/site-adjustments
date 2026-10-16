@@ -80,8 +80,7 @@ export default async function DemandsPage({
         demand.developer === responsible ||
         demand.items.some((item) => item.assignee === responsible)) &&
       (!unassigned ||
-        (!demand.developer?.trim() &&
-          !demand.items.some((item) => item.assignee?.trim()))) &&
+        demand.items.some((item) => !item.assignee?.trim())) &&
       (!important ||
         demand.items.some((item) =>
           item.annotations.some(
@@ -182,7 +181,7 @@ export default async function DemandsPage({
                 value="true"
                 defaultChecked={unassigned}
               />
-              Sem nenhuma atribuição
+              Com item sem atribuição
             </label>
           </div>
           <button className="focus-ring h-10 rounded-md bg-slate-900 px-4 text-sm font-semibold text-white">
